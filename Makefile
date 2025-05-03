@@ -8,7 +8,7 @@ ROOT := $(shell echo "$(realpath .)")
 GREP_EW := grep -E "WARNING:|ERROR:|" --color=auto
 
 # Define the GCC command for RISC-V
-RV64G_GCC := riscv64-unknown-elf-gcc -march=rv32imf -mabi=ilp32 -nostdlib -nostartfiles
+RV64G_GCC := riscv64-unknown-elf-gcc -march=rv32imf -mabi=ilp32f -nostdlib -nostartfiles
 
 # Define the test argument
 DEBUG ?= 0
