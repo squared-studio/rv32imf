@@ -1,5 +1,3 @@
-`include "common_cells/registers.svh"
-
 module fpnew_noncomp #(
     // Floating-point format for the operation
     parameter fpnew_pkg::fp_format_e   FpFormat    = fpnew_pkg::fp_format_e'(0),
@@ -129,19 +127,80 @@ module fpnew_noncomp #(
 
     assign inp_pipe_ready[i] = inp_pipe_ready[i+1] | ~inp_pipe_valid_q[i+1];
 
-    `FFLARNC(inp_pipe_valid_q[i+1], inp_pipe_valid_q[i], inp_pipe_ready[i], flush_i, 1'b0, clk_i,
-             rst_ni)
+    always_ff @(posedge (clk_i) or negedge (rst_ni)) begin
+      if (!rst_ni) begin
+        inp_pipe_valid_q[i+1] <= ('0);
+      end else begin
+        inp_pipe_valid_q[i+1] <= (flush_i) ? ('0) : (inp_pipe_ready[i]) ? (inp_pipe_valid_q[i]) : (inp_pipe_valid_q[i+1]);
+      end
+    end
 
     assign reg_ena = (inp_pipe_ready[i] & inp_pipe_valid_q[i]) | reg_ena_i[i];
 
-    `FFL(inp_pipe_operands_q[i+1], inp_pipe_operands_q[i], reg_ena, '0)
-    `FFL(inp_pipe_is_boxed_q[i+1], inp_pipe_is_boxed_q[i], reg_ena, '0)
-    `FFL(inp_pipe_rnd_mode_q[i+1], inp_pipe_rnd_mode_q[i], reg_ena, fpnew_pkg::RNE)
-    `FFL(inp_pipe_op_q[i+1], inp_pipe_op_q[i], reg_ena, fpnew_pkg::FMADD)
-    `FFL(inp_pipe_op_mod_q[i+1], inp_pipe_op_mod_q[i], reg_ena, '0)
-    `FFL(inp_pipe_tag_q[i+1], inp_pipe_tag_q[i], reg_ena, TagType'('0))
-    `FFL(inp_pipe_mask_q[i+1], inp_pipe_mask_q[i], reg_ena, '0)
-    `FFL(inp_pipe_aux_q[i+1], inp_pipe_aux_q[i], reg_ena, AuxType'('0))
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        inp_pipe_operands_q[i+1] <= ('0);
+      end else begin
+        inp_pipe_operands_q[i+1] <= (reg_ena) ? (inp_pipe_operands_q[i]) : (inp_pipe_operands_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        inp_pipe_is_boxed_q[i+1] <= ('0);
+      end else begin
+        inp_pipe_is_boxed_q[i+1] <= (reg_ena) ? (inp_pipe_is_boxed_q[i]) : (inp_pipe_is_boxed_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        inp_pipe_rnd_mode_q[i+1] <= (fpnew_pkg::RNE);
+      end else begin
+        inp_pipe_rnd_mode_q[i+1] <= (reg_ena) ? (inp_pipe_rnd_mode_q[i]) : (inp_pipe_rnd_mode_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        inp_pipe_op_q[i+1] <= (fpnew_pkg::FMADD);
+      end else begin
+        inp_pipe_op_q[i+1] <= (reg_ena) ? (inp_pipe_op_q[i]) : (inp_pipe_op_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        inp_pipe_op_mod_q[i+1] <= ('0);
+      end else begin
+        inp_pipe_op_mod_q[i+1] <= (reg_ena) ? (inp_pipe_op_mod_q[i]) : (inp_pipe_op_mod_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        inp_pipe_tag_q[i+1] <= (TagType'('0));
+      end else begin
+        inp_pipe_tag_q[i+1] <= (reg_ena) ? (inp_pipe_tag_q[i]) : (inp_pipe_tag_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        inp_pipe_mask_q[i+1] <= ('0);
+      end else begin
+        inp_pipe_mask_q[i+1] <= (reg_ena) ? (inp_pipe_mask_q[i]) : (inp_pipe_mask_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        inp_pipe_aux_q[i+1] <= (AuxType'('0));
+      end else begin
+        inp_pipe_aux_q[i+1] <= (reg_ena) ? (inp_pipe_aux_q[i]) : (inp_pipe_aux_q[i+1]);
+      end
+    end
+
   end
 
   fpnew_pkg::fp_info_t [1:0] info_q;
@@ -355,19 +414,80 @@ module fpnew_noncomp #(
 
     assign out_pipe_ready[i] = out_pipe_ready[i+1] | ~out_pipe_valid_q[i+1];
 
-    `FFLARNC(out_pipe_valid_q[i+1], out_pipe_valid_q[i], out_pipe_ready[i], flush_i, 1'b0, clk_i,
-             rst_ni)
+    always_ff @(posedge (clk_i) or negedge (rst_ni)) begin
+      if (!rst_ni) begin
+        out_pipe_valid_q[i+1] <= ('0);
+      end else begin
+        out_pipe_valid_q[i+1] <= (flush_i) ? ('0) : (out_pipe_ready[i]) ? (out_pipe_valid_q[i]) : (out_pipe_valid_q[i+1]);
+      end
+    end
 
     assign reg_ena = (out_pipe_ready[i] & out_pipe_valid_q[i]) | reg_ena_i[NUM_INP_REGS+i];
 
-    `FFL(out_pipe_result_q[i+1], out_pipe_result_q[i], reg_ena, '0)
-    `FFL(out_pipe_status_q[i+1], out_pipe_status_q[i], reg_ena, '0)
-    `FFL(out_pipe_extension_bit_q[i+1], out_pipe_extension_bit_q[i], reg_ena, '0)
-    `FFL(out_pipe_class_mask_q[i+1], out_pipe_class_mask_q[i], reg_ena, fpnew_pkg::QNAN)
-    `FFL(out_pipe_is_class_q[i+1], out_pipe_is_class_q[i], reg_ena, '0)
-    `FFL(out_pipe_tag_q[i+1], out_pipe_tag_q[i], reg_ena, TagType'('0))
-    `FFL(out_pipe_mask_q[i+1], out_pipe_mask_q[i], reg_ena, '0)
-    `FFL(out_pipe_aux_q[i+1], out_pipe_aux_q[i], reg_ena, AuxType'('0))
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        out_pipe_result_q[i+1] <= ('0);
+      end else begin
+        out_pipe_result_q[i+1] <= (reg_ena) ? (out_pipe_result_q[i]) : (out_pipe_result_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        out_pipe_status_q[i+1] <= ('0);
+      end else begin
+        out_pipe_status_q[i+1] <= (reg_ena) ? (out_pipe_status_q[i]) : (out_pipe_status_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        out_pipe_extension_bit_q[i+1] <= ('0);
+      end else begin
+        out_pipe_extension_bit_q[i+1] <= (reg_ena) ? (out_pipe_extension_bit_q[i]) : (out_pipe_extension_bit_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        out_pipe_class_mask_q[i+1] <= (fpnew_pkg::QNAN);
+      end else begin
+        out_pipe_class_mask_q[i+1] <= (reg_ena) ? (out_pipe_class_mask_q[i]) : (out_pipe_class_mask_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        out_pipe_is_class_q[i+1] <= ('0);
+      end else begin
+        out_pipe_is_class_q[i+1] <= (reg_ena) ? (out_pipe_is_class_q[i]) : (out_pipe_is_class_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        out_pipe_tag_q[i+1] <= (TagType'('0));
+      end else begin
+        out_pipe_tag_q[i+1] <= (reg_ena) ? (out_pipe_tag_q[i]) : (out_pipe_tag_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        out_pipe_mask_q[i+1] <= ('0);
+      end else begin
+        out_pipe_mask_q[i+1] <= (reg_ena) ? (out_pipe_mask_q[i]) : (out_pipe_mask_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        out_pipe_aux_q[i+1] <= (AuxType'('0));
+      end else begin
+        out_pipe_aux_q[i+1] <= (reg_ena) ? (out_pipe_aux_q[i]) : (out_pipe_aux_q[i+1]);
+      end
+    end
+
   end
 
   assign out_pipe_ready[NUM_OUT_REGS] = out_ready_i;

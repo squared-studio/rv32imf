@@ -7,9 +7,6 @@ ROOT := $(shell echo "$(realpath .)")
 # Define the grep command for warnings and errors
 GREP_EW := grep -E "WARNING:|ERROR:|" --color=auto
 
-# Define the GCC command for RISC-V
-RV64G_GCC := riscv64-unknown-elf-gcc -march=rv32imf -mabi=ilp32f -nostdlib -nostartfiles
-
 # Define the test argument
 DEBUG ?= 0
 ifeq ($(DEBUG), 1)
@@ -219,10 +216,10 @@ test: build
 	@if [ ! -f tests/$(TEST) ]; then echo -e "\033[1;31mtests/$(TEST) does not exist\033[0m"; exit 1; fi
 	@$(eval TEST_TYPE := $(shell echo "$(TEST)" | sed "s/.*\.//g"))
 	@if [ "$(TEST_TYPE)" = "c" ]; then TEST_ARGS="lib/startup.s"; else TEST_ARGS=""; fi; \
-		$(RV64G_GCC) -o build/prog.elf tests/$(TEST) $$TEST_ARGS -Ilib
-	@riscv64-unknown-elf-objcopy -O verilog build/prog.elf build/prog.hex
-	@riscv64-unknown-elf-nm build/prog.elf > build/prog.sym
-	@riscv64-unknown-elf-objdump -d build/prog.elf > build/prog.dump
+		${RISCV64_GCC} -march=rv32imf -mabi=ilp32f -nostdlib -nostartfiles -o build/prog.elf tests/$(TEST) $$TEST_ARGS -Ilib
+	@${RISCV64_OBJCOPY} -O verilog build/prog.elf build/prog.hex
+	@${RISCV64_NM} build/prog.elf > build/prog.sym
+	@${RISCV64_OBJDUMP} -d build/prog.elf > build/prog.dump
 
 .PHONY: wave
 wave:

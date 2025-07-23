@@ -1,6 +1,3 @@
-// Include the registers definition file.
-`include "common_cells/registers.svh"
-
 // Module definition for a multi-format slice operation group.
 module fpnew_opgroup_multifmt_slice #(
     // Parameter for the operation group type (default: CONV).
@@ -588,15 +585,34 @@ module fpnew_opgroup_multifmt_slice #(
       assign byp_pipe_ready[i] = byp_pipe_ready[i+1] | ~byp_pipe_valid_q[i+1];
 
       // Register for the valid signal.
-      `FFLARNC(byp_pipe_valid_q[i+1], byp_pipe_valid_q[i], byp_pipe_ready[i], flush_i, 1'b0, clk_i,
-               rst_ni)
+      always_ff @(posedge (clk_i) or negedge (rst_ni)) begin
+        if (!rst_ni) begin
+          byp_pipe_valid_q[i+1] <= '0;
+        end else begin
+          byp_pipe_valid_q[i+1] <= (flush_i) ? '0 : (byp_pipe_ready[i]) ? (byp_pipe_valid_q[i]) : (byp_pipe_valid_q[i+1]);
+        end
+      end
 
       // Determine the register enable signal.
       assign reg_ena = (byp_pipe_ready[i] & byp_pipe_valid_q[i]) | reg_ena_i[i];
 
       // Registers for the target operand and auxiliary data.
-      `FFL(byp_pipe_target_q[i+1], byp_pipe_target_q[i], reg_ena, '0)
-      `FFL(byp_pipe_aux_q[i+1], byp_pipe_aux_q[i], reg_ena, '0)
+      always_ff @(posedge clk_i or negedge rst_ni) begin
+        if (!rst_ni) begin
+          byp_pipe_target_q[i+1] <= '0;
+        end else begin
+          byp_pipe_target_q[i+1] <= (reg_ena) ? (byp_pipe_target_q[i]) : (byp_pipe_target_q[i+1]);
+        end
+      end
+
+      // Register for the auxiliary data.
+      always_ff @(posedge clk_i or negedge rst_ni) begin
+        if (!rst_ni) begin
+          byp_pipe_aux_q[i+1] <= '0;
+        end else begin
+          byp_pipe_aux_q[i+1] <= (reg_ena) ? (byp_pipe_aux_q[i]) : (byp_pipe_aux_q[i+1]);
+        end
+      end
     end
 
     // Ready signal for the last stage.

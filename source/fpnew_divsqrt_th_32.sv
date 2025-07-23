@@ -1,5 +1,3 @@
-`include "common_cells/registers.svh"
-
 module fpnew_divsqrt_th_32 #(
     // Number of pipeline registers
     parameter int unsigned             NumPipeRegs = 0,
@@ -115,17 +113,64 @@ module fpnew_divsqrt_th_32 #(
 
     assign inp_pipe_ready[i] = inp_pipe_ready[i+1] | ~inp_pipe_valid_q[i+1];
 
-    `FFLARNC(inp_pipe_valid_q[i+1], inp_pipe_valid_q[i], inp_pipe_ready[i], flush_i, 1'b0, clk_i,
-             rst_ni)
+    always_ff @(posedge (clk_i) or negedge (rst_ni)) begin
+      if (!rst_ni) begin
+        inp_pipe_valid_q[i+1] <= (1'b0);
+      end else begin
+        inp_pipe_valid_q[i+1] <= (flush_i) ? (1'b0) : (inp_pipe_ready[i]) ? (inp_pipe_valid_q[i]) : (inp_pipe_valid_q[i+1]);
+      end
+    end
 
     assign reg_ena = (inp_pipe_ready[i] & inp_pipe_valid_q[i]) | reg_ena_i[i];
 
-    `FFL(inp_pipe_operands_q[i+1], inp_pipe_operands_q[i], reg_ena, '0)
-    `FFL(inp_pipe_rnd_mode_q[i+1], inp_pipe_rnd_mode_q[i], reg_ena, fpnew_pkg::RNE)
-    `FFL(inp_pipe_op_q[i+1], inp_pipe_op_q[i], reg_ena, fpnew_pkg::FMADD)
-    `FFL(inp_pipe_tag_q[i+1], inp_pipe_tag_q[i], reg_ena, TagType'('0))
-    `FFL(inp_pipe_mask_q[i+1], inp_pipe_mask_q[i], reg_ena, '0)
-    `FFL(inp_pipe_aux_q[i+1], inp_pipe_aux_q[i], reg_ena, AuxType'('0))
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        inp_pipe_operands_q[i+1] <= ('0);
+      end else begin
+        inp_pipe_operands_q[i+1] <= (reg_ena) ? (inp_pipe_operands_q[i]) : (inp_pipe_operands_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        inp_pipe_rnd_mode_q[i+1] <= (fpnew_pkg::RNE);
+      end else begin
+        inp_pipe_rnd_mode_q[i+1] <= (reg_ena) ? (inp_pipe_rnd_mode_q[i]) : (inp_pipe_rnd_mode_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        inp_pipe_op_q[i+1] <= (fpnew_pkg::FMADD);
+      end else begin
+        inp_pipe_op_q[i+1] <= (reg_ena) ? (inp_pipe_op_q[i]) : (inp_pipe_op_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        inp_pipe_tag_q[i+1] <= (TagType'('0));
+      end else begin
+        inp_pipe_tag_q[i+1] <= (reg_ena) ? (inp_pipe_tag_q[i]) : (inp_pipe_tag_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        inp_pipe_mask_q[i+1] <= ('0);
+      end else begin
+        inp_pipe_mask_q[i+1] <= (reg_ena) ? (inp_pipe_mask_q[i]) : (inp_pipe_mask_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        inp_pipe_aux_q[i+1] <= (AuxType'('0));
+      end else begin
+        inp_pipe_aux_q[i+1] <= (reg_ena) ? (inp_pipe_aux_q[i]) : (inp_pipe_aux_q[i+1]);
+      end
+    end
+
   end
 
   assign operands_q = inp_pipe_operands_q[NUM_INP_REGS];
@@ -161,9 +206,29 @@ module fpnew_divsqrt_th_32 #(
   assign div_op_d  = (fdsu_fpu_ex1_stall) ? div_op : 1'b0;
   assign sqrt_op_d = (fdsu_fpu_ex1_stall) ? sqrt_op : 1'b0;
 
-  `FFL(fdsu_fpu_ex1_stall_q, fdsu_fpu_ex1_stall, 1'b1, '0)
-  `FFL(div_op_q, div_op_d, 1'b1, '0)
-  `FFL(sqrt_op_q, sqrt_op_d, 1'b1, '0)
+  always_ff @(posedge clk_i or negedge rst_ni) begin
+    if (!rst_ni) begin
+      fdsu_fpu_ex1_stall_q <= ('0);
+    end else begin
+      fdsu_fpu_ex1_stall_q <= (1'b1) ? (fdsu_fpu_ex1_stall) : (fdsu_fpu_ex1_stall_q);
+    end
+  end
+
+  always_ff @(posedge clk_i or negedge rst_ni) begin
+    if (!rst_ni) begin
+      div_op_q <= ('0);
+    end else begin
+      div_op_q <= (1'b1) ? (div_op_d) : (div_op_q);
+    end
+  end
+
+  always_ff @(posedge clk_i or negedge rst_ni) begin
+    if (!rst_ni) begin
+      sqrt_op_q <= ('0);
+    end else begin
+      sqrt_op_q <= (1'b1) ? (sqrt_op_d) : (sqrt_op_q);
+    end
+  end
 
   // FSM logic to control input readiness, output validity, and state transitions
   always_comb begin : flag_fsm
@@ -232,15 +297,43 @@ module fpnew_divsqrt_th_32 #(
     end
   end
 
-  `FF(state_q, state_d, IDLE)
+
+  always_ff @(posedge clk_i or negedge rst_ni) begin
+    if (!rst_ni) begin
+      state_q <= (IDLE);
+    end else begin
+      state_q <= (state_d);
+    end
+  end
+
 
   TagType result_tag_q;
   AuxType result_aux_q;
   logic   result_mask_q;
 
-  `FFL(result_tag_q, inp_pipe_tag_q[NUM_INP_REGS], op_starting, '0)
-  `FFL(result_mask_q, inp_pipe_mask_q[NUM_INP_REGS], op_starting, '0)
-  `FFL(result_aux_q, inp_pipe_aux_q[NUM_INP_REGS], op_starting, '0)
+  always_ff @(posedge clk_i or negedge rst_ni) begin
+    if (!rst_ni) begin
+      result_tag_q <= ('0);
+    end else begin
+      result_tag_q <= (op_starting) ? (inp_pipe_tag_q[NUM_INP_REGS]) : (result_tag_q);
+    end
+  end
+
+  always_ff @(posedge clk_i or negedge rst_ni) begin
+    if (!rst_ni) begin
+      result_mask_q <= ('0);
+    end else begin
+      result_mask_q <= (op_starting) ? (inp_pipe_mask_q[NUM_INP_REGS]) : (result_mask_q);
+    end
+  end
+
+  always_ff @(posedge clk_i or negedge rst_ni) begin
+    if (!rst_ni) begin
+      result_aux_q <= ('0);
+    end else begin
+      result_aux_q <= (op_starting) ? (inp_pipe_aux_q[NUM_INP_REGS]) : (result_aux_q);
+    end
+  end
 
   logic [WIDTH-1:0] unit_result, held_result_q;
   fpnew_pkg::status_t unit_status, held_status_q;
@@ -288,7 +381,13 @@ module fpnew_divsqrt_th_32 #(
     end
   end
 
-  `FFL(unit_ready_q, unit_ready_d, 1'b1, 1'b1)
+  always_ff @(posedge clk_i or negedge rst_ni) begin
+    if (!rst_ni) begin
+      unit_ready_q <= (1'b1);
+    end else begin
+      unit_ready_q <= (1'b1) ? (unit_ready_d) : (unit_ready_q);
+    end
+  end
 
   always_comb begin
     ctrl_fdsu_ex1_sel  = 1'b0;
@@ -384,7 +483,14 @@ module fpnew_divsqrt_th_32 #(
   );
 
   assign ex2_inst_wb_vld_d = ctrl_fdsu_ex1_sel;
-  `FF(ex2_inst_wb_vld_q, ex2_inst_wb_vld_d, '0)
+
+  always_ff @(posedge clk_i or negedge rst_ni) begin
+    if (!rst_ni) begin
+      ex2_inst_wb_vld_q <= ('0);
+    end else begin
+      ex2_inst_wb_vld_q <= (ex2_inst_wb_vld_d);
+    end
+  end
 
   // Instantiate the floating-point result bus
   pa_fpu_frbus x_pa_fpu_frbus (
@@ -405,8 +511,13 @@ module fpnew_divsqrt_th_32 #(
     unit_done         = fpu_idu_fwd_vld;
   end
 
-  `FFLNR(held_result_q, unit_result, hold_result, clk_i)
-  `FFLNR(held_status_q, unit_status, hold_result, clk_i)
+  always_ff @(posedge (clk_i)) begin
+    held_result_q <= (hold_result) ? (unit_result) : (held_result_q);
+  end
+
+  always_ff @(posedge (clk_i)) begin
+    held_status_q <= (hold_result) ? (unit_status) : (held_status_q);
+  end
 
   logic [WIDTH-1:0] result_d;
   fpnew_pkg::status_t status_d;
@@ -438,16 +549,56 @@ module fpnew_divsqrt_th_32 #(
 
     assign out_pipe_ready[i] = out_pipe_ready[i+1] | ~out_pipe_valid_q[i+1];
 
-    `FFLARNC(out_pipe_valid_q[i+1], out_pipe_valid_q[i], out_pipe_ready[i], flush_i, 1'b0, clk_i,
-             rst_ni)
+    always_ff @(posedge (clk_i) or negedge (rst_ni)) begin
+      if (!rst_ni) begin
+        out_pipe_valid_q[i+1] <= (1'b0);
+      end else begin
+        out_pipe_valid_q[i+1] <= (flush_i) ? (1'b0) : (out_pipe_ready[i]) ? (out_pipe_valid_q[i]) : (out_pipe_valid_q[i+1]);
+      end
+    end
 
     assign reg_ena = (out_pipe_ready[i] & out_pipe_valid_q[i]) | reg_ena_i[NUM_INP_REGS+i];
 
-    `FFL(out_pipe_result_q[i+1], out_pipe_result_q[i], reg_ena, '0)
-    `FFL(out_pipe_status_q[i+1], out_pipe_status_q[i], reg_ena, '0)
-    `FFL(out_pipe_tag_q[i+1], out_pipe_tag_q[i], reg_ena, TagType'('0))
-    `FFL(out_pipe_mask_q[i+1], out_pipe_mask_q[i], reg_ena, '0)
-    `FFL(out_pipe_aux_q[i+1], out_pipe_aux_q[i], reg_ena, AuxType'('0))
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        out_pipe_result_q[i+1] <= ('0);
+      end else begin
+        out_pipe_result_q[i+1] <= (reg_ena) ? (out_pipe_result_q[i]) : (out_pipe_result_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        out_pipe_status_q[i+1] <= ('0);
+      end else begin
+        out_pipe_status_q[i+1] <= (reg_ena) ? (out_pipe_status_q[i]) : (out_pipe_status_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        out_pipe_tag_q[i+1] <= (TagType'('0));
+      end else begin
+        out_pipe_tag_q[i+1] <= (reg_ena) ? (out_pipe_tag_q[i]) : (out_pipe_tag_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        out_pipe_mask_q[i+1] <= ('0);
+      end else begin
+        out_pipe_mask_q[i+1] <= (reg_ena) ? (out_pipe_mask_q[i]) : (out_pipe_mask_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        out_pipe_aux_q[i+1] <= (AuxType'('0));
+      end else begin
+        out_pipe_aux_q[i+1] <= (reg_ena) ? (out_pipe_aux_q[i]) : (out_pipe_aux_q[i+1]);
+      end
+    end
+
   end
 
   assign out_pipe_ready[NUM_OUT_REGS] = out_ready_i;

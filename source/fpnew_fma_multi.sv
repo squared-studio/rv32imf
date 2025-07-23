@@ -1,6 +1,3 @@
-// Include header file for common cells, specifically registers.
-`include "common_cells/registers.svh"
-
 // Module definition for a multi-format floating-point FMA unit.
 module fpnew_fma_multi #(
     // Parameter for floating-point format configuration.
@@ -181,32 +178,97 @@ module fpnew_fma_multi #(
     assign inp_pipe_ready[i] = inp_pipe_ready[i+1] | ~inp_pipe_valid_q[i+1];
 
     // Instantiate a register with load enable, clear, and set functionality for the valid bit.
-    `FFLARNC(inp_pipe_valid_q[i+1], inp_pipe_valid_q[i], inp_pipe_ready[i], flush_i, 1'b0, clk_i,
-             rst_ni)
+    always_ff @(posedge (clk_i) or negedge (rst_ni)) begin
+      if (!rst_ni) begin
+        inp_pipe_valid_q[i+1] <= (1'b0);
+      end else begin
+        inp_pipe_valid_q[i+1] <= (flush_i) ? (1'b0) : (inp_pipe_ready[i]) ? (inp_pipe_valid_q[i]) : (inp_pipe_valid_q[i+1]);
+      end
+    end
 
     // Determine when to enable the registers in this stage.
     assign reg_ena = (inp_pipe_ready[i] & inp_pipe_valid_q[i]) | reg_ena_i[i];
 
-    // Instantiate registers for the operands.
-    `FFL(inp_pipe_operands_q[i+1], inp_pipe_operands_q[i], reg_ena, '0)
-    // Instantiate registers for the is_boxed flags.
-    `FFL(inp_pipe_is_boxed_q[i+1], inp_pipe_is_boxed_q[i], reg_ena, '0)
-    // Instantiate registers for the rounding mode.
-    `FFL(inp_pipe_rnd_mode_q[i+1], inp_pipe_rnd_mode_q[i], reg_ena, fpnew_pkg::RNE)
-    // Instantiate registers for the operation type.
-    `FFL(inp_pipe_op_q[i+1], inp_pipe_op_q[i], reg_ena, fpnew_pkg::FMADD)
-    // Instantiate registers for the operation modifier.
-    `FFL(inp_pipe_op_mod_q[i+1], inp_pipe_op_mod_q[i], reg_ena, '0)
-    // Instantiate registers for the source format.
-    `FFL(inp_pipe_src_fmt_q[i+1], inp_pipe_src_fmt_q[i], reg_ena, fpnew_pkg::fp_format_e'(0))
-    // Instantiate registers for the destination format.
-    `FFL(inp_pipe_dst_fmt_q[i+1], inp_pipe_dst_fmt_q[i], reg_ena, fpnew_pkg::fp_format_e'(0))
-    // Instantiate registers for the tag.
-    `FFL(inp_pipe_tag_q[i+1], inp_pipe_tag_q[i], reg_ena, TagType'('0))
-    // Instantiate registers for the mask.
-    `FFL(inp_pipe_mask_q[i+1], inp_pipe_mask_q[i], reg_ena, '0)
-    // Instantiate registers for the auxiliary signal.
-    `FFL(inp_pipe_aux_q[i+1], inp_pipe_aux_q[i], reg_ena, AuxType'('0))
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        inp_pipe_operands_q[i+1] <= ('0);
+      end else begin
+        inp_pipe_operands_q[i+1] <= (reg_ena) ? (inp_pipe_operands_q[i]) : (inp_pipe_operands_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        inp_pipe_is_boxed_q[i+1] <= ('0);
+      end else begin
+        inp_pipe_is_boxed_q[i+1] <= (reg_ena) ? (inp_pipe_is_boxed_q[i]) : (inp_pipe_is_boxed_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        inp_pipe_rnd_mode_q[i+1] <= (fpnew_pkg::RNE);
+      end else begin
+        inp_pipe_rnd_mode_q[i+1] <= (reg_ena) ? (inp_pipe_rnd_mode_q[i]) : (inp_pipe_rnd_mode_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        inp_pipe_op_q[i+1] <= (fpnew_pkg::FMADD);
+      end else begin
+        inp_pipe_op_q[i+1] <= (reg_ena) ? (inp_pipe_op_q[i]) : (inp_pipe_op_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        inp_pipe_op_mod_q[i+1] <= ('0);
+      end else begin
+        inp_pipe_op_mod_q[i+1] <= (reg_ena) ? (inp_pipe_op_mod_q[i]) : (inp_pipe_op_mod_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        inp_pipe_src_fmt_q[i+1] <= (fpnew_pkg::fp_format_e'(0));
+      end else begin
+        inp_pipe_src_fmt_q[i+1] <= (reg_ena) ? (inp_pipe_src_fmt_q[i]) : (inp_pipe_src_fmt_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        inp_pipe_dst_fmt_q[i+1] <= (fpnew_pkg::fp_format_e'(0));
+      end else begin
+        inp_pipe_dst_fmt_q[i+1] <= (reg_ena) ? (inp_pipe_dst_fmt_q[i]) : (inp_pipe_dst_fmt_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        inp_pipe_tag_q[i+1] <= (TagType'('0));
+      end else begin
+        inp_pipe_tag_q[i+1] <= (reg_ena) ? (inp_pipe_tag_q[i]) : (inp_pipe_tag_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        inp_pipe_mask_q[i+1] <= ('0);
+      end else begin
+        inp_pipe_mask_q[i+1] <= (reg_ena) ? (inp_pipe_mask_q[i]) : (inp_pipe_mask_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        inp_pipe_aux_q[i+1] <= (AuxType'('0));
+      end else begin
+        inp_pipe_aux_q[i+1] <= (reg_ena) ? (inp_pipe_aux_q[i]) : (inp_pipe_aux_q[i+1]);
+      end
+    end
+
   end
 
   // Assign the output of the input pipeline to internal signals.
@@ -617,29 +679,146 @@ module fpnew_fma_multi #(
     assign mid_pipe_ready[i] = mid_pipe_ready[i+1] | ~mid_pipe_valid_q[i+1];
 
     // Instantiate a register with load enable, clear, and set functionality for the valid bit.
-    `FFLARNC(mid_pipe_valid_q[i+1], mid_pipe_valid_q[i], mid_pipe_ready[i], flush_i, 1'b0, clk_i,
-             rst_ni)
+    always_ff @(posedge (clk_i) or negedge (rst_ni)) begin
+      if (!rst_ni) begin
+        mid_pipe_valid_q[i+1] <= (1'b0);
+      end else begin
+        mid_pipe_valid_q[i+1] <= (flush_i) ? (1'b0) : (mid_pipe_ready[i]) ? (mid_pipe_valid_q[i]) : (mid_pipe_valid_q[i+1]);
+      end
+    end
 
     // Determine when to enable the registers in this stage.
     assign reg_ena = (mid_pipe_ready[i] & mid_pipe_valid_q[i]) | reg_ena_i[NUM_INP_REGS+i];
 
     // Instantiate registers for the intermediate signals.
-    `FFL(mid_pipe_eff_sub_q[i+1], mid_pipe_eff_sub_q[i], reg_ena, '0)
-    `FFL(mid_pipe_exp_prod_q[i+1], mid_pipe_exp_prod_q[i], reg_ena, '0)
-    `FFL(mid_pipe_exp_diff_q[i+1], mid_pipe_exp_diff_q[i], reg_ena, '0)
-    `FFL(mid_pipe_tent_exp_q[i+1], mid_pipe_tent_exp_q[i], reg_ena, '0)
-    `FFL(mid_pipe_add_shamt_q[i+1], mid_pipe_add_shamt_q[i], reg_ena, '0)
-    `FFL(mid_pipe_sticky_q[i+1], mid_pipe_sticky_q[i], reg_ena, '0)
-    `FFL(mid_pipe_sum_q[i+1], mid_pipe_sum_q[i], reg_ena, '0)
-    `FFL(mid_pipe_final_sign_q[i+1], mid_pipe_final_sign_q[i], reg_ena, '0)
-    `FFL(mid_pipe_rnd_mode_q[i+1], mid_pipe_rnd_mode_q[i], reg_ena, fpnew_pkg::RNE)
-    `FFL(mid_pipe_dst_fmt_q[i+1], mid_pipe_dst_fmt_q[i], reg_ena, fpnew_pkg::fp_format_e'(0))
-    `FFL(mid_pipe_res_is_spec_q[i+1], mid_pipe_res_is_spec_q[i], reg_ena, '0)
-    `FFL(mid_pipe_spec_res_q[i+1], mid_pipe_spec_res_q[i], reg_ena, '0)
-    `FFL(mid_pipe_spec_stat_q[i+1], mid_pipe_spec_stat_q[i], reg_ena, '0)
-    `FFL(mid_pipe_tag_q[i+1], mid_pipe_tag_q[i], reg_ena, TagType'('0))
-    `FFL(mid_pipe_mask_q[i+1], mid_pipe_mask_q[i], reg_ena, '0)
-    `FFL(mid_pipe_aux_q[i+1], mid_pipe_aux_q[i], reg_ena, AuxType'('0))
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        mid_pipe_eff_sub_q[i+1] <= ('0);
+      end else begin
+        mid_pipe_eff_sub_q[i+1] <= (reg_ena) ? (mid_pipe_eff_sub_q[i]) : (mid_pipe_eff_sub_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        mid_pipe_exp_prod_q[i+1] <= ('0);
+      end else begin
+        mid_pipe_exp_prod_q[i+1] <= (reg_ena) ? (mid_pipe_exp_prod_q[i]) : (mid_pipe_exp_prod_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        mid_pipe_exp_diff_q[i+1] <= ('0);
+      end else begin
+        mid_pipe_exp_diff_q[i+1] <= (reg_ena) ? (mid_pipe_exp_diff_q[i]) : (mid_pipe_exp_diff_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        mid_pipe_tent_exp_q[i+1] <= ('0);
+      end else begin
+        mid_pipe_tent_exp_q[i+1] <= (reg_ena) ? (mid_pipe_tent_exp_q[i]) : (mid_pipe_tent_exp_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        mid_pipe_add_shamt_q[i+1] <= ('0);
+      end else begin
+        mid_pipe_add_shamt_q[i+1] <= (reg_ena) ? (mid_pipe_add_shamt_q[i]) : (mid_pipe_add_shamt_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        mid_pipe_sticky_q[i+1] <= ('0);
+      end else begin
+        mid_pipe_sticky_q[i+1] <= (reg_ena) ? (mid_pipe_sticky_q[i]) : (mid_pipe_sticky_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        mid_pipe_sum_q[i+1] <= ('0);
+      end else begin
+        mid_pipe_sum_q[i+1] <= (reg_ena) ? (mid_pipe_sum_q[i]) : (mid_pipe_sum_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        mid_pipe_final_sign_q[i+1] <= ('0);
+      end else begin
+        mid_pipe_final_sign_q[i+1] <= (reg_ena) ? (mid_pipe_final_sign_q[i]) : (mid_pipe_final_sign_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        mid_pipe_rnd_mode_q[i+1] <= (fpnew_pkg::RNE);
+      end else begin
+        mid_pipe_rnd_mode_q[i+1] <= (reg_ena) ? (mid_pipe_rnd_mode_q[i]) : (mid_pipe_rnd_mode_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        mid_pipe_dst_fmt_q[i+1] <= (fpnew_pkg::fp_format_e'(0));
+      end else begin
+        mid_pipe_dst_fmt_q[i+1] <= (reg_ena) ? (mid_pipe_dst_fmt_q[i]) : (mid_pipe_dst_fmt_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        mid_pipe_res_is_spec_q[i+1] <= ('0);
+      end else begin
+        mid_pipe_res_is_spec_q[i+1] <= (reg_ena) ? (mid_pipe_res_is_spec_q[i]) : (mid_pipe_res_is_spec_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        mid_pipe_spec_res_q[i+1] <= ('0);
+      end else begin
+        mid_pipe_spec_res_q[i+1] <= (reg_ena) ? (mid_pipe_spec_res_q[i]) : (mid_pipe_spec_res_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        mid_pipe_spec_stat_q[i+1] <= ('0);
+      end else begin
+        mid_pipe_spec_stat_q[i+1] <= (reg_ena) ? (mid_pipe_spec_stat_q[i]) : (mid_pipe_spec_stat_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        mid_pipe_tag_q[i+1] <= (TagType'('0));
+      end else begin
+        mid_pipe_tag_q[i+1] <= (reg_ena) ? (mid_pipe_tag_q[i]) : (mid_pipe_tag_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        mid_pipe_mask_q[i+1] <= ('0);
+      end else begin
+        mid_pipe_mask_q[i+1] <= (reg_ena) ? (mid_pipe_mask_q[i]) : (mid_pipe_mask_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        mid_pipe_aux_q[i+1] <= (AuxType'('0));
+      end else begin
+        mid_pipe_aux_q[i+1] <= (reg_ena) ? (mid_pipe_aux_q[i]) : (mid_pipe_aux_q[i+1]);
+      end
+    end
+
   end
 
   // Assign the output of the middle pipeline to internal signals.
@@ -980,18 +1159,58 @@ module fpnew_fma_multi #(
     assign out_pipe_ready[i] = out_pipe_ready[i+1] | ~out_pipe_valid_q[i+1];
 
     // Instantiate a register with load enable, clear, and set functionality for the valid bit.
-    `FFLARNC(out_pipe_valid_q[i+1], out_pipe_valid_q[i], out_pipe_ready[i], flush_i, 1'b0, clk_i,
-             rst_ni)
+    always_ff @(posedge (clk_i) or negedge (rst_ni)) begin
+      if (!rst_ni) begin
+        out_pipe_valid_q[i+1] <= (1'b0);
+      end else begin
+        out_pipe_valid_q[i+1] <= (flush_i) ? (1'b0) : (out_pipe_ready[i]) ? (out_pipe_valid_q[i]) : (out_pipe_valid_q[i+1]);
+      end
+    end
 
     // Determine when to enable the registers in this stage.
     assign reg_ena = (out_pipe_ready[i] & out_pipe_valid_q[i]) | reg_ena_i[NUM_INP_REGS + NUM_MID_REGS + i];
 
     // Instantiate registers for the output signals.
-    `FFL(out_pipe_result_q[i+1], out_pipe_result_q[i], reg_ena, '0)
-    `FFL(out_pipe_status_q[i+1], out_pipe_status_q[i], reg_ena, '0)
-    `FFL(out_pipe_tag_q[i+1], out_pipe_tag_q[i], reg_ena, TagType'('0))
-    `FFL(out_pipe_mask_q[i+1], out_pipe_mask_q[i], reg_ena, '0)
-    `FFL(out_pipe_aux_q[i+1], out_pipe_aux_q[i], reg_ena, AuxType'('0))
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        out_pipe_result_q[i+1] <= ('0);
+      end else begin
+        out_pipe_result_q[i+1] <= (reg_ena) ? (out_pipe_result_q[i]) : (out_pipe_result_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        out_pipe_status_q[i+1] <= ('0);
+      end else begin
+        out_pipe_status_q[i+1] <= (reg_ena) ? (out_pipe_status_q[i]) : (out_pipe_status_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        out_pipe_tag_q[i+1] <= (TagType'('0));
+      end else begin
+        out_pipe_tag_q[i+1] <= (reg_ena) ? (out_pipe_tag_q[i]) : (out_pipe_tag_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        out_pipe_mask_q[i+1] <= ('0);
+      end else begin
+        out_pipe_mask_q[i+1] <= (reg_ena) ? (out_pipe_mask_q[i]) : (out_pipe_mask_q[i+1]);
+      end
+    end
+
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+      if (!rst_ni) begin
+        out_pipe_aux_q[i+1] <= (AuxType'('0));
+      end else begin
+        out_pipe_aux_q[i+1] <= (reg_ena) ? (out_pipe_aux_q[i]) : (out_pipe_aux_q[i+1]);
+      end
+    end
+
   end
 
   // Connect the ready signal of the external output to the last stage of the pipeline.
