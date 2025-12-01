@@ -22,6 +22,11 @@ else
 	TEST := $(file <build/test)
 endif
 
+RISCV64_GCC ?= riscv64-unknown-elf-gcc
+RISCV64_OBJCOPY ?= riscv64-unknown-elf-objcopy
+RISCV64_NM ?= riscv64-unknown-elf-nm
+RISCV64_OBJDUMP ?= riscv64-unknown-elf-objdump
+
 ################################################################################
 # Add all the RTL source files to the LIB variable
 ################################################################################
